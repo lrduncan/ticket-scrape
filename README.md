@@ -1,3 +1,3 @@
-# Web scraper readme
+# Web scraper for stock checking
 
 TODO
