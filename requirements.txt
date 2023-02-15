@@ -1,2 +1,5 @@
 requests-html==0.10.0 
 beautifulsoup4==4.11.2
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
