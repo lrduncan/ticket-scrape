@@ -1,7 +1,6 @@
 from requests_html import HTMLSession
 from bs4 import BeautifulSoup
 from constants import MY_EMAIL, ITEMS, SCOPES
-from time import sleep, gmtime, strftime
 
 import base64
 from email.message import EmailMessage
@@ -33,7 +32,8 @@ def check_used_stock(url: str, price_limit: float):
     if price_tag is None or len(price_tag) == 0:
         print('No used price found')
         if price_limit:
-            send_email('Item has no used stock', f'Item no longer has used stock: {url}')
+            send_email('Item has no used stock',
+                       f'Item no longer has used stock: {url}')
         return
 
     price = price_tag.contents[0]
@@ -51,7 +51,8 @@ def check_used_stock(url: str, price_limit: float):
     item_title = item_title_tag.contents[0]
 
     send_email('New low price for your tracked item!',
-        f'Item {item_title} has a new low price of {price}.\n\n Link: {url}')
+               f'''Item {item_title} has a new low price of {price}.\n\n
+               Link: {url}''')
 
 
 def send_email(subject, msg):
@@ -105,15 +106,9 @@ if __name__ == '__main__':
 
     items = ITEMS
 
-    while True:
-        try:
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-
-            for item in items:
-                check_used_stock(item['url'], item['price'])
-
-            sleep_time = 15 * 60
-            print(f'Sleeping for {sleep_time} seconds, or {int(sleep_time/60)} minutes')
-            sleep(sleep_time)
-        except Exception as e:
-            send_email('Exception: stock scraper', f'An exception occured within in stock scraper: {e}')
+    try:
+        for item in items:
+            check_used_stock(item['url'], item['price'])
+    except Exception as e:
+        send_email('Exception: stock scraper',
+                   f'An exception occured within in stock scraper: {e}')
