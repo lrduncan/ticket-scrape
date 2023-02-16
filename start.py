@@ -1,6 +1,7 @@
 from requests_html import HTMLSession
 from bs4 import BeautifulSoup
 from constants import MY_EMAIL, ITEMS, SCOPES
+import logging
 
 import base64
 from email.message import EmailMessage
@@ -24,27 +25,27 @@ def check_used_stock(url: str, price_limit: float):
 
     soup = BeautifulSoup(r.content, 'html.parser')
 
-    print(f'Searching URL: {url}')
+    logging.info(f'Searching URL: {url}')
 
     # This class string seems to be the way to find used/open box item prices
     price_tag = soup.find('span', class_='bond_JJqzY8QbUR')
 
     if price_tag is None or len(price_tag) == 0:
-        print('No used price found')
+        logging.info('No used price found')
         if price_limit:
             send_email('Item has no used stock',
                        f'Item no longer has used stock: {url}')
         return
 
     price = price_tag.contents[0]
-    print(f'Cheapest used price found: {price}')
+    logging.info(f'Cheapest used price found: {price}')
 
     # Used price comes with $ in front so remove that and convert to float
     price_as_float = float(str(price).replace('$', ''))
 
     # Check if we have a price limit and if so, does the current price beat it?
     if price_limit and price_as_float >= price_limit:
-        print('Price exceeds limit')
+        logging.info('Price exceeds limit')
         return
 
     item_title_tag = soup.find('h1', class_='text_TAw0W35QK_')
@@ -56,7 +57,7 @@ def check_used_stock(url: str, price_limit: float):
 
 
 def send_email(subject, msg):
-    print('sending email')
+    logging.info('sending email')
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -95,9 +96,9 @@ def send_email(subject, msg):
         # pylint: disable=E1101
         send_message = (service.users().messages().send
                         (userId="me", body=create_message).execute())
-        print(f'Message Id: {send_message["id"]}')
+        logging.info(f'Message Id: {send_message["id"]}')
     except HttpError as error:
-        print(f'An error occurred: {error}')
+        logging.exception(f'An error occurred: {error}')
         send_message = None
     return send_message
 
@@ -112,3 +113,4 @@ if __name__ == '__main__':
     except Exception as e:
         send_email('Exception: stock scraper',
                    f'An exception occured within in stock scraper: {e}')
+        logging.exception(f'An error occurred: {e}')
