@@ -1,19 +1,18 @@
-from requests_html import HTMLSession
-from bs4 import BeautifulSoup
-from constants import MY_EMAIL, SCOPES
-import logging
-import sqlite3
-
 import base64
+import logging
+import os.path
+import sqlite3
 from email.message import EmailMessage
 
-import os.path
-
+from bs4 import BeautifulSoup
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from requests_html import HTMLSession
+
+from constants import MY_EMAIL, SCOPES
 
 
 def check_used_stock(url: str, price_limit: float):
