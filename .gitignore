@@ -178,3 +178,4 @@ credentials.json
 token.json
 
 constants.py
+*.db

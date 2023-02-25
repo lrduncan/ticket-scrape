@@ -1,18 +1,18 @@
-from requests_html import HTMLSession
-from bs4 import BeautifulSoup
-from constants import MY_EMAIL, ITEMS, SCOPES
-import logging
-
 import base64
+import logging
+import os.path
+import sqlite3
 from email.message import EmailMessage
 
-import os.path
-
+from bs4 import BeautifulSoup
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from requests_html import HTMLSession
+
+from constants import MY_EMAIL, SCOPES
 
 
 def check_used_stock(url: str, price_limit: float):
@@ -35,7 +35,7 @@ def check_used_stock(url: str, price_limit: float):
         if price_limit:
             send_email('Item has no used stock',
                        f'Item no longer has used stock: {url}')
-        return
+        return None
 
     price = price_tag.contents[0]
     logging.info(f'Cheapest used price found: {price}')
@@ -46,7 +46,7 @@ def check_used_stock(url: str, price_limit: float):
     # Check if we have a price limit and if so, does the current price beat it?
     if price_limit and price_as_float >= price_limit:
         logging.info('Price exceeds limit')
-        return
+        return price_limit
 
     item_title_tag = soup.find('h1', class_='text_TAw0W35QK_')
     item_title = item_title_tag.contents[0]
@@ -54,6 +54,7 @@ def check_used_stock(url: str, price_limit: float):
     send_email('New low price for your tracked item!',
                f'''Item {item_title} has a new low price of {price}.\n\n
                Link: {url}''')
+    return price_as_float
 
 
 def send_email(subject, msg):
@@ -104,12 +105,21 @@ def send_email(subject, msg):
 
 
 if __name__ == '__main__':
-
-    items = ITEMS
-
     try:
+        con = sqlite3.connect('items.db')
+        cur = con.cursor()
+        res = cur.execute('SELECT * from items')
+        items = res.fetchall()
+
         for item in items:
-            check_used_stock(item['url'], item['price'])
+            # Items table has columns 'url' and 'price' for each item
+            url, price = item
+            new_price = check_used_stock(url, price)
+            if new_price is None or new_price < price:
+                # Update the price according to the latest scrape
+                cur.execute('UPDATE items SET price=? WHERE url=?',
+                            (new_price, url))
+                con.commit()
     except Exception as e:
         send_email('Exception: stock scraper',
                    f'An exception occured within in stock scraper: {e}')
